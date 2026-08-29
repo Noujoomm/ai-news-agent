@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import concurrent.futures as futures
 import datetime as dt
-import random
 import time
 
 import feedparser
 
 from . import config
-from .content import HOOKS
+from . import viral
+from .content import pick_hook
 from .filters import (
     clean,
     is_ai_related,
@@ -85,6 +85,9 @@ def poll_source(source: Source, max_age_hours: int) -> list[NewsItem]:
         if config.WATCH_FILTER_NOISE and is_noise(f"{title} {summary}", config.WATCH_BLOCK_KEYWORDS):
             continue
 
+        if viral.score(title, summary, source.name) < config.WATCH_MIN_SCORE:
+            continue
+
         publisher = gn_publisher or _publisher(entry, source.name)
         if publisher.lower() in config.WATCH_BLOCK_SOURCES:
             continue
@@ -97,6 +100,7 @@ def poll_source(source: Source, max_age_hours: int) -> list[NewsItem]:
                 published=published.isoformat() if published else "",
                 summary=summary,
                 category=source.region,
+                score=viral.score(title, summary, f"{publisher} {source.name}"),
             )
         )
     return items
@@ -142,7 +146,10 @@ def select_new(items: list[NewsItem], seen: SeenStore, dedupe_titles: bool) -> l
     fresh: list[NewsItem] = []
     batch_keys: set[str] = set()
 
-    for item in sorted(items, key=_sort_key, reverse=True):
+    # الأقوى للمحتوى أولاً — لو انضرب سقف الجولة، الأخبار الحلوة ما تضيع
+    ordered = sorted(items, key=lambda it: (it.score, _sort_key(it)), reverse=True)
+
+    for item in ordered:
         keys = item_keys(item, dedupe_titles)
         if any(seen.has(k) or k in batch_keys for k in keys):
             continue
@@ -180,8 +187,11 @@ def _relative_time(published: str) -> str:
 
 
 def format_alert(item: NewsItem) -> str:
+    tag = viral.badge(item.score)
+    header = tag if tag else f"🔴 <b>خبر AI جديد</b>"
+
     lines = [
-        f"🔴 <b>خبر AI جديد</b> · {_region_label(item.category)}",
+        f"{header} · {_region_label(item.category)}",
         "",
         f"<b>{_esc(item.title)}</b>",
     ]
@@ -192,8 +202,10 @@ def format_alert(item: NewsItem) -> str:
     if item.link:
         lines.append(f"🔗 {item.link}")
 
-    if config.WATCH_INCLUDE_HOOK:
-        lines += ["", f"🪝 <i>هوك جاهز:</i> {_esc(random.choice(HOOKS))}"]
+    # الأخبار القوية تاخذ هوك أداة/إطلاق، الباقي هوك عام
+    if config.WATCH_INCLUDE_HOOK and viral.is_content_worthy(item.score):
+        hook = pick_hook(is_tool_news=item.category == "tools" or item.score >= viral.TIER_FIRE)
+        lines += ["", f"🪝 <i>هوك جاهز:</i> {_esc(hook)}"]
 
     return "\n".join(lines)
 
@@ -235,18 +247,21 @@ def run_cycle(
     if dry_run:
         print(f"[{stamp}] 🧪 تجربة — {len(fresh)} خبر جديد (ما بنرسل شي):\n")
         for item in fresh:
-            print(f"   {_region_label(item.category)}  {item.title[:95]}")
+            flame = "🔥" if viral.is_content_worthy(item.score) else "  "
+            print(f"   {flame} [{item.score:>2}] {_region_label(item.category)}  {item.title[:85]}")
             print(f"      📡 {item.source} · {_relative_time(item.published)}  →  {item.link}\n")
         return len(fresh)
 
-    print(f"[{stamp}] 🚨 {len(fresh)} خبر جديد — جاري الإرسال...")
+    hot = sum(1 for it in fresh if viral.is_content_worthy(it.score))
+    print(f"[{stamp}] 🚨 {len(fresh)} خبر جديد ({hot} منها 🔥 يصلح محتوى) — جاري الإرسال...")
 
     sent = 0
     for item in to_send:
         if send_message(format_alert(item)):
             seen.add_many(item_keys(item, config.WATCH_DEDUPE_TITLES))
             sent += 1
-            print(f"   ✅ {item.title[:70]}  ({item.source})")
+            flame = "🔥" if viral.is_content_worthy(item.score) else "  "
+            print(f"   ✅ {flame} [{item.score:>2}] {item.title[:65]}  ({item.source})")
         else:
             print(f"   ❌ فشل الإرسال: {item.title[:60]}")
         seen.save()

@@ -1,6 +1,6 @@
 # 🤖 AI News Agent — مراقبة لحظية لأخبار الذكاء الاصطناعي
 
-وكيل Python يتابع **٤٥ مصدر AI حول العالم** (🇺🇸 أمريكا · 🇨🇳 الصين · 🇪🇺 أوروبا · 🌏 آسيا · 🇸🇦 السعودية · 🌴 الخليج) وأي خبر جديد يوصلك على تليجرام **فورًا**.
+وكيل Python يتابع **٥٤ مصدر AI حول العالم** (🇺🇸 أمريكا · 🇨🇳 الصين · 🇪🇺 أوروبا · 🌏 آسيا · 🇸🇦 السعودية · 🌴 الخليج) وأي خبر جديد يوصلك على تليجرام **فورًا**.
 
 مجاني ١٠٠٪ — كل المصادر RSS و GitHub API بدون أي مفاتيح مدفوعة.
 
@@ -72,6 +72,7 @@ gh repo create ai-news-agent --private --source=. --push
 تبغى تجربه الحين؟ تبويب **Actions** → `AI News Watch` → **Run workflow**.
 
 **ملاحظات:**
+- **أول تشغيل ما يرسل أخبار** — يسجّل الموجود كـ«مقروء» عشان ما تنصدم بـ٤٠٠ رسالة دفعة وحدة. من الجولة الثانية يبدأ يرسل الجديد فقط.
 - أقل فترة تسمح فيها GitHub Actions هي ١٥ دقيقة، وأحيانًا يتأخر التشغيل شوي وقت الذروة. لو تبغى لحظي فعلاً كل ٥ دقائق، تحتاج سيرفر دائم (Fly.io / Railway / VPS).
 - ذاكرة الأخبار المرسلة تنحفظ في cache الـ Actions — فما يتكرر عليك خبر.
 
@@ -89,6 +90,7 @@ WATCH_MAX_AGE_HOURS=24        # يتجاهل الأخبار الأقدم من ك
 WATCH_MAX_PER_CYCLE=20        # سقف الرسائل في الجولة الوحدة
 WATCH_REGIONS=                # فاضي = كل المناطق (ما عدا الأبحاث)
 WATCH_FILTER_NOISE=true       # يستبعد توقعات المباريات ومقالات الأسهم
+WATCH_MIN_SCORE=0             # 🔥 0=الكل، 3=يصلح محتوى، 6=الأقوى فقط
 ```
 
 ### متابعة مناطق محددة فقط
@@ -98,7 +100,39 @@ WATCH_REGIONS=usa,china             # أمريكا والصين فقط
 WATCH_REGIONS=all                   # كل شي + الأوراق البحثية (arXiv)
 ```
 
-المناطق المتاحة: `saudi` `gulf` `arabic` `usa` `china` `asia` `europe` `community` `research` `global`
+المناطق المتاحة: `tools` `saudi` `gulf` `arabic` `usa` `china` `asia` `europe` `community` `research` `global`
+
+---
+
+## 🔥 ترتيب المحتوى حسب قوته للتيك توك
+
+مو كل خبر AI يصلح ريل. البوت يعطي كل خبر **درجة** ويرسل الأقوى أول، وعليه علامة:
+
+| العلامة | الدرجة | نوع الخبر |
+|---|---|---|
+| 🔥🔥 **صوّر ريل** | ٦+ | إطلاق أداة، ميزة جديدة، شي مجاني أو مفتوح المصدر |
+| 🔥 **يصلح محتوى** | ٣+ | تحديث منتج، مقارنة، تجربة عملية |
+| — عادي | أقل | أرباح، أسهم، قضايا، تعيينات إدارية |
+
+**أمثلة من التشغيل الفعلي:**
+```
+🔥 [ 8] Google Launches Gemini Omni 1.1 Flash with 4K AI Video
+🔥 [ 8] OpenAI Launches Apple Messages Integration for ChatGPT
+🔥 [ 7] Show HN: AI Harness that lets Codex and Claude intercommunicate
+   [-1] Nvidia Q3 earnings beat analyst estimates, stock jumps 8%
+```
+
+تبغى الأخبار القوية بس؟ في `.env`:
+```bash
+WATCH_MIN_SCORE=3     # اللي يصلح محتوى فقط
+WATCH_MIN_SCORE=6     # الأقوى فقط — أخبار تستاهل ريل
+```
+
+قواعد التقييم كلها في [`ai_news_agent/viral.py`](ai_news_agent/viral.py) — تقدر تعدّلها وتزيد كلماتك.
+
+### مصادر الأدوات والإطلاقات
+عشان محتوى تيك توك، البوت يتابع مصادر مخصصة للأدوات الجديدة:
+Product Hunt · Show HN · TLDR AI · r/ChatGPT، وتنبيهات مخصصة لـ **Gemini** و **Claude Code** و **ChatGPT** وأدوات فيديو AI (Sora، Veo، Runway، Midjourney).
 
 ---
 

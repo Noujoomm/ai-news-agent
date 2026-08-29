@@ -82,3 +82,9 @@ WATCH_BLOCK_KEYWORDS = [k.strip() for k in os.getenv("WATCH_BLOCK_KEYWORDS", "")
 
 # مصادر (ناشرين) تبغى تحجبهم — مفصولة بفواصل، مثال: The Motley Fool,365Scores
 WATCH_BLOCK_SOURCES = [s.strip().lower() for s in os.getenv("WATCH_BLOCK_SOURCES", "").split(",") if s.strip()]
+
+# 🔥 أقل درجة "قابلية انتشار" عشان الخبر يوصلك (viral.py)
+#   0  = كل أخبار الـ AI
+#   3  = الأخبار اللي تصلح محتوى فقط (أدوات، إطلاقات، مجاني...)
+#   6  = الأقوى فقط — أخبار تستاهل ريل
+WATCH_MIN_SCORE = int(os.getenv("WATCH_MIN_SCORE", "0"))

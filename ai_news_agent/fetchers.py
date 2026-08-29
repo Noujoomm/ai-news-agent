@@ -40,7 +40,8 @@ class NewsItem:
     source: str
     published: str = ""
     summary: str = ""
-    category: str = "global"  # global | saudi | arabic
+    category: str = "global"  # المنطقة: usa | china | saudi | tools ...
+    score: int = 0  # درجة قابلية الانتشار (viral.py)
     tags: list[str] = field(default_factory=list)
 
 

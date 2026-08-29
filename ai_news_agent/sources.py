@@ -7,7 +7,7 @@
     region : المنطقة (تستخدم للتصنيف والفلترة عبر WATCH_REGIONS في .env)
 
 المناطق المتاحة:
-    saudi | gulf | arabic | usa | china | asia | europe | community | research
+    tools | saudi | gulf | arabic | usa | china | asia | europe | community | research
 
 تبغى تزيد مصدر؟ ضيفه في القائمة المناسبة تحت — وبس.
 """
@@ -24,13 +24,17 @@ REGION_LABELS = {
     "china": "🇨🇳 الصين",
     "asia": "🌏 آسيا",
     "europe": "🇪🇺 أوروبا",
+    "tools": "🛠 أدوات",
     "community": "💬 مجتمع",
     "research": "🔬 أبحاث",
     "global": "🌍 عالمي",
 }
 
 # المناطق المفعّلة افتراضيًا (research مطفّية لأنها مئات الأوراق البحثية يوميًا)
-DEFAULT_REGIONS = ["saudi", "gulf", "arabic", "usa", "china", "asia", "europe", "community", "global"]
+DEFAULT_REGIONS = [
+    "tools", "saudi", "gulf", "arabic", "usa",
+    "china", "asia", "europe", "community", "global",
+]
 
 
 @dataclass(frozen=True)
@@ -90,6 +94,17 @@ ARABIC_SOURCES = [
 ]
 
 # ---------------------------------------------------------------------------
+# 🛠 الأدوات والإطلاقات — أخصب مصدر لمحتوى تيك توك
+# (أداة جديدة تحل مشكلة = أفضل ريل)
+# ---------------------------------------------------------------------------
+TOOL_SOURCES = [
+    Source("Product Hunt", "https://www.producthunt.com/feed?category=artificial-intelligence", "tools"),
+    Source("Show HN", "https://hnrss.org/show", "tools"),
+    Source("TLDR AI", "https://tldr.tech/api/rss/ai", "tools"),
+    Source("r/ChatGPT", "https://www.reddit.com/r/ChatGPT/top/.rss?t=day", "tools"),
+]
+
+# ---------------------------------------------------------------------------
 # 💬 مجتمعات (نقاشات المطورين — غالبًا تسبق الأخبار الرسمية)
 # ---------------------------------------------------------------------------
 COMMUNITY_SOURCES = [
@@ -120,6 +135,12 @@ def _gn(query: str, lang: str = "en-US", country: str = "US") -> str:
 
 
 GOOGLE_NEWS_SOURCES = [
+    # 🛠 إطلاقات وأدوات — الأولوية لمحتوى تيك توك
+    Source("Google News · أدوات جديدة", _gn('"new AI tool" OR "AI app" launch when:2d'), "tools"),
+    Source("Google News · Gemini", _gn("Google Gemini new feature OR launch when:2d"), "tools"),
+    Source("Google News · Claude", _gn('"Claude Code" OR "Claude AI" Anthropic when:2d'), "tools"),
+    Source("Google News · ChatGPT", _gn("ChatGPT new feature OR update when:2d"), "tools"),
+    Source("Google News · فيديو AI", _gn("Sora OR Veo OR Runway OR Midjourney AI video when:2d"), "tools"),
     # عالمي شامل — أي خبر AI من أي مصدر
     Source("Google News · AI", _gn("artificial intelligence when:1d"), "global"),
     Source("Google News · GenAI", _gn("generative AI OR LLM OR AI model when:1d"), "global"),
@@ -145,7 +166,8 @@ GOOGLE_NEWS_SOURCES = [
 
 # ---------------------------------------------------------------------------
 ALL_SOURCES: list[Source] = (
-    USA_SOURCES
+    TOOL_SOURCES
+    + USA_SOURCES
     + CHINA_SOURCES
     + ARABIC_SOURCES
     + COMMUNITY_SOURCES
