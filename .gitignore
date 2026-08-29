@@ -1,0 +1,15 @@
+# أسرار — لا ترفعه أبدًا
+.env
+
+# بيئة بايثون
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ذاكرة الأخبار المرسلة (تُحفظ في cache الـ Actions مو في الريبو)
+.seen_news.json
+
+# نظام
+.DS_Store

@@ -1,0 +1,32 @@
+# 📰 النشرة اليومية الكاملة (مع سكربت الريل وأفكار المحتوى)
+name: AI News Daily Digest
+
+on:
+  schedule:
+    # 05:00 UTC = 08:00 بتوقيت السعودية
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: تثبيت المتطلبات
+        run: pip install -r requirements.txt
+
+      - name: بناء وإرسال النشرة
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BRAND_NAME: ${{ vars.BRAND_NAME }}
+          BRAND_CTA: ${{ vars.BRAND_CTA }}
+        run: python main.py

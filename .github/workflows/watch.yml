@@ -1,0 +1,56 @@
+# 🔴 المراقبة اللحظية — يشتغل على سيرفرات GitHub، لابتوبك ما له دخل
+name: AI News Watch
+
+on:
+  schedule:
+    # كل ١٥ دقيقة (أقل فترة عمليًا في GitHub Actions)
+    - cron: "*/15 * * * *"
+  workflow_dispatch: # زر تشغيل يدوي من تبويب Actions
+
+# ما نبغى جولتين يشتغلن مع بعض ويرسلن نفس الخبر مرتين
+concurrency:
+  group: ai-news-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: تثبيت المتطلبات
+        run: pip install -r requirements.txt
+
+      # ذاكرة الأخبار المرسلة — تنتقل من جولة للي بعدها عشان ما يتكرر خبر
+      - name: استرجاع ذاكرة الأخبار
+        uses: actions/cache/restore@v4
+        with:
+          path: .seen_news.json
+          key: seen-news-${{ github.run_id }}
+          restore-keys: |
+            seen-news-
+
+      - name: فحص المصادر وإرسال الجديد
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BRAND_NAME: ${{ vars.BRAND_NAME }}
+          BRAND_CTA: ${{ vars.BRAND_CTA }}
+          WATCH_MAX_AGE_HOURS: "6"
+          WATCH_MAX_PER_CYCLE: "15"
+          WATCH_STATE_TTL_DAYS: "3"
+        run: python watch.py --once
+
+      - name: حفظ ذاكرة الأخبار للجولة الجاية
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .seen_news.json
+          key: seen-news-${{ github.run_id }}
